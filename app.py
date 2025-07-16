@@ -25,113 +25,116 @@ from components._11_table_section import register_table_callback
 #url = 'https://docs.google.com/spreadsheets/d/1WZudSUSf4ineO6sFQuaV7nJVmr8CcYH5GwK-WuVNR4A/export?format=csv&gid=939378808'
 #df = pd.read_csv(url, encoding='utf-8')
 
-url_alpha = 'https://docs.google.com/spreadsheets/d/1Rj6DGqEhuCO02rwsi9EQ-nkBs4C7PJcW5s0mqhTFBdE/export?format=csv&gid=0'
-url_dream1 = 'https://docs.google.com/spreadsheets/d/1KpnVeV2f2aSRTiZAl1LSq74C4oQ975r7qtxlYIr-RFs/export?format=csv&gid=0'
-url_dream2 = 'https://docs.google.com/spreadsheets/d/1R-g1y8QRBZMmWaav-cfiCURfox2Hx_2mxet_q3XzB3A/export?format=csv&gid=0'
-url_gold1 = 'https://docs.google.com/spreadsheets/d/1XiILBe6zsQmQs51aIjrvZzH8bHRn43YBt200qTWiCWw/export?format=csv&gid=0'
-url_gold2 = 'https://docs.google.com/spreadsheets/d/1M7-NcP4OVB-0YqkSfy1uGzFgLDjWziJZKo2U4OiRcTA/export?format=csv&gid=0'
-url_legend = 'https://docs.google.com/spreadsheets/d/1MXBvPlB9rlwpDrEP86K2Ya9lOYBc-hp5l6iw__jb2bs/export?format=csv&gid=0'
+def get_latest_df():
+    url_alpha = 'https://docs.google.com/spreadsheets/d/1Rj6DGqEhuCO02rwsi9EQ-nkBs4C7PJcW5s0mqhTFBdE/export?format=csv&gid=0'
+    url_dream1 = 'https://docs.google.com/spreadsheets/d/1KpnVeV2f2aSRTiZAl1LSq74C4oQ975r7qtxlYIr-RFs/export?format=csv&gid=0'
+    url_dream2 = 'https://docs.google.com/spreadsheets/d/1R-g1y8QRBZMmWaav-cfiCURfox2Hx_2mxet_q3XzB3A/export?format=csv&gid=0'
+    url_gold1 = 'https://docs.google.com/spreadsheets/d/1XiILBe6zsQmQs51aIjrvZzH8bHRn43YBt200qTWiCWw/export?format=csv&gid=0'
+    url_gold2 = 'https://docs.google.com/spreadsheets/d/1M7-NcP4OVB-0YqkSfy1uGzFgLDjWziJZKo2U4OiRcTA/export?format=csv&gid=0'
+    url_legend = 'https://docs.google.com/spreadsheets/d/1MXBvPlB9rlwpDrEP86K2Ya9lOYBc-hp5l6iw__jb2bs/export?format=csv&gid=0'
+    df_alpha = pd.read_csv(url_alpha, encoding='utf-8')
+    df_dream1 = pd.read_csv(url_dream1, encoding='utf-8')
+    df_dream2 = pd.read_csv(url_dream2, encoding='utf-8')
+    df_gold1 = pd.read_csv(url_gold1, encoding='utf-8')
+    df_gold2 = pd.read_csv(url_gold2, encoding='utf-8')
+    df_legend = pd.read_csv(url_legend, encoding='utf-8')
+    df = pd.concat([df_alpha, df_dream1, df_dream2, df_gold1, df_gold2, df_legend], axis = 0)
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
+    return df
 
-df_alpha = pd.read_csv(url_alpha, encoding='utf-8')
-df_dream1 = pd.read_csv(url_dream1, encoding='utf-8')
-df_dream2 = pd.read_csv(url_dream2, encoding='utf-8')
-df_gold1 = pd.read_csv(url_gold1, encoding='utf-8')
-df_gold2 = pd.read_csv(url_gold2, encoding='utf-8')
-df_legend = pd.read_csv(url_legend, encoding='utf-8')
-
-df = pd.concat([df_alpha, df_dream1, df_dream2, df_gold1, df_gold2, df_legend], axis = 0)
-
-df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
-
-min_date = df['날짜'].min().date()
-max_date = df['날짜'].max().date()
-end_date_default = max_date
-start_date_default = max(end_date_default.replace(day=1), min_date)
-dept_list = df['부서'].unique().tolist()
+df = get_latest_df()
 
 # --- Dash 앱 시작 ---
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "Goodrich Sales Report"
-
-# ---- 테이블 레이아웃 생성 (콜백도 내부에서 등록됨) ----
 table_layout = register_table_callback(app, df)
 
 # ----- 레이아웃 -----
-app.layout = html.Div(
-    style={"backgroundColor": "#F4F4F4", "minHeight": "100vh", "padding": "10px"},
-    children=[
-        html.Div([
-            # 좌측: 제목
-            html.H1("굿리치플러스 실적 현황", style={
-                'textAlign': 'left',
-                'fontSize': '2.2rem',
-                'margin': 0,
-                'paddingLeft': '10px',
-                'fontWeight': 700,
-                'flex': '1'
-            }),
-            # 우측: 설정 영역
+def serve_layout():
+    df = get_latest_df()
+    min_date = df['날짜'].min().date()
+    max_date = df['날짜'].max().date()
+    end_date_default = max_date
+    start_date_default = max(end_date_default.replace(day=1), min_date)
+    dept_list = df['부서'].unique().tolist()
+
+    return html.Div(
+        style={"backgroundColor": "#F4F4F4", "minHeight": "100vh", "padding": "10px"},
+        children=[
             html.Div([
+                # 좌측: 제목
+                html.H1("굿리치플러스 실적 현황", style={
+                    'textAlign': 'left',
+                    'fontSize': '2.2rem',
+                    'margin': 0,
+                    'paddingLeft': '10px',
+                    'fontWeight': 700,
+                    'flex': '1'
+                }),
+                # 우측: 설정 영역
                 html.Div([
-                    html.Label("시작 일자", style={'marginBottom': '3px'}),
-                    dcc.DatePickerSingle(
-                        id='start-date',
-                        min_date_allowed=min_date,
-                        max_date_allowed=max_date,
-                        date=start_date_default,
-                        style={'width': '100%'}
-                    )
-                ], style={'display': 'flex', 'flexDirection': 'column', 'width': '125px', 'marginRight': '12px'}),
-                html.Div([
-                    html.Label("끝 일자", style={'marginBottom': '3px'}),
-                    dcc.DatePickerSingle(
-                        id='end-date',
-                        min_date_allowed=min_date,
-                        max_date_allowed=max_date,
-                        date=end_date_default,
-                        style={'width': '100%'}
-                    )
-                ], style={'display': 'flex', 'flexDirection': 'column', 'width': '125px', 'marginRight': '12px'}),
-                html.Div([
-                    html.Label("단위(부서)", style={'marginBottom': '10px'}),
-                    dcc.Dropdown(
-                        id='unit',
-                        options=[{'label': x, 'value': x} for x in ['전체'] + dept_list],
-                        value='전체',
-                        clearable=False,
-                        style={'width': '120px', 'fontSize': '0.99rem'}
-                    )
-                ], style={'display': 'flex', 'flexDirection': 'column', 'width': '120px', 'height' : '75px', 'marginRight': '12px'}),
-                html.Div([
-                    html.Label("보기 기준", style={'marginBottom': '15px'}),
-                    dcc.RadioItems(
-                        id='value-type',
-                        options=[
-                            {'label': '환산', 'value': '환산'},
-                            {'label': '보험료', 'value': '보험료'}
-                        ],
-                        value='환산',
-                        labelStyle={'display': 'inline-block', 'marginRight': '10px', 'fontSize': '0.98rem'}
-                    )
-                ], style={'display': 'flex', 'flexDirection': 'column', 'width': '148px', 'height' : '75px'}),
+                    html.Div([
+                        html.Label("시작 일자", style={'marginBottom': '3px'}),
+                        dcc.DatePickerSingle(
+                            id='start-date',
+                            min_date_allowed=min_date,
+                            max_date_allowed=max_date,
+                            date=start_date_default,
+                            style={'width': '100%'}
+                        )
+                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '125px', 'marginRight': '12px'}),
+                    html.Div([
+                        html.Label("끝 일자", style={'marginBottom': '3px'}),
+                        dcc.DatePickerSingle(
+                            id='end-date',
+                            min_date_allowed=min_date,
+                            max_date_allowed=max_date,
+                            date=end_date_default,
+                            style={'width': '100%'}
+                        )
+                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '125px', 'marginRight': '12px'}),
+                    html.Div([
+                        html.Label("단위(부서)", style={'marginBottom': '10px'}),
+                        dcc.Dropdown(
+                            id='unit',
+                            options=[{'label': x, 'value': x} for x in ['전체'] + dept_list],
+                            value='전체',
+                            clearable=False,
+                            style={'width': '120px', 'fontSize': '0.99rem'}
+                        )
+                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '120px', 'height' : '75px', 'marginRight': '12px'}),
+                    html.Div([
+                        html.Label("보기 기준", style={'marginBottom': '15px'}),
+                        dcc.RadioItems(
+                            id='value-type',
+                            options=[
+                                {'label': '환산', 'value': '환산'},
+                                {'label': '보험료', 'value': '보험료'}
+                            ],
+                            value='환산',
+                            labelStyle={'display': 'inline-block', 'marginRight': '10px', 'fontSize': '0.98rem'}
+                        )
+                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '148px', 'height' : '75px'}),
+                ], style={
+                    'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center',
+                    'justifyContent': 'flex-end',
+                    'gap': '0px',
+                    'flex': '1'
+                }),
             ], style={
-                'display': 'flex', 'flexDirection': 'row', 'alignItems': 'center',
-                'justifyContent': 'flex-end',
-                'gap': '0px',
-                'flex': '1'
+                'display': 'flex', 'flexDirection': 'row',
+                'alignItems': 'center', 'justifyContent': 'space-between',
+                'marginTop': '35px', 'marginBottom': '20px', 'width': '100%'
             }),
-        ], style={
-            'display': 'flex', 'flexDirection': 'row',
-            'alignItems': 'center', 'justifyContent': 'space-between',
-            'marginTop': '35px', 'marginBottom': '20px', 'width': '100%'
-        }),
-        html.Hr(),
-        html.Div(id='dashboard-content'),
-        html.Hr(),
-        table_layout,
-        html.Div(style={'marginBottom': '36px'})
-    ]
-)
+            html.Hr(),
+            html.Div(id='dashboard-content'),
+            html.Hr(),
+            table_layout,
+            html.Div(style={'marginBottom': '36px'})
+        ]
+    )
+
+app.layout = serve_layout
 
 # ----- 대시보드(상단) 콜백 -----
 @app.callback(
