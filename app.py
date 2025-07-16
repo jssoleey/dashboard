@@ -145,6 +145,7 @@ app.layout = serve_layout
     dash.dependencies.Input('value-type', 'value')
 )
 def update_dashboard(start_date, end_date, unit, value_type):
+    df = get_latest_df()
     hparams = {
         "start_date": pd.to_datetime(start_date),
         "end_date": pd.to_datetime(end_date),
@@ -172,6 +173,7 @@ def update_dashboard(start_date, end_date, unit, value_type):
     Input('unit', 'value')
 )
 def update_cnt_bar(tab, start_date, end_date, unit):
+    df = get_latest_df()
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     if unit == '전체':
@@ -259,6 +261,7 @@ def update_cnt_bar(tab, start_date, end_date, unit):
     Input('value-type', 'value')
 )
 def update_amt_bar(tab, start_date, end_date, unit, value_type):
+    df = get_latest_df()
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     if unit == '전체':
@@ -342,6 +345,7 @@ def update_amt_bar(tab, start_date, end_date, unit, value_type):
     Input('end-date', 'date')
 )
 def update_dept_cnt(tab, start_date, end_date):
+    df = get_latest_df()
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     depts = df['부서'].unique()
@@ -425,6 +429,7 @@ def update_dept_cnt(tab, start_date, end_date):
     Input('value-type', 'value')
 )
 def update_dept_amt(tab, start_date, end_date, value_type):
+    df = get_latest_df()
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     depts = df['부서'].unique()
