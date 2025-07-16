@@ -6,3 +6,4 @@ gunicorn
 matplotlib
 gspread
 oauth2client
+dash-iconify
