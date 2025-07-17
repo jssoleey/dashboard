@@ -69,7 +69,7 @@ def register_table_callback(app):
             (df['날짜'] >= pd.to_datetime(start_date)) &
             (df['날짜'] <= pd.to_datetime(end_date))
         ].copy()
-        filtered_df = filtered_df.sort_values(by=['날짜', '부서'], ascending=[True, True])
+        filtered_df = filtered_df.sort_values(by=['날짜', '부서'], ascending=[False, True])
         if filtered_df.empty:
             return "조회 결과가 없습니다."
         return dash_table.DataTable(
