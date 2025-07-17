@@ -11,6 +11,16 @@ TITLE_STYLE = {
     "color": "#454a4f",
 }
 
+dept_palette = {
+    "골드1실": "#9baaff",
+    "골드2실": "#f5bab5",
+    "드림1실": "#9cd7bf",
+    "드림2실": "#ab9cfe",
+    "레전드실": "#f8afcf",
+    "알파실": "#f9df8a",
+    "전체": "#2176ff"  # 전체(중앙)는 필요 시 별도 색상 지정
+}
+
 def target_row(df, hparams):
     base_date = hparams['end_date']
     unit = hparams['unit']
@@ -74,7 +84,8 @@ def target_row(df, hparams):
     # ------- 중앙 도넛 파이차트 (더 크게, 배경색, 퍼센트만 표시) -------
     donut_val = min(center['달성률'], 100)
     donut_rest = max(100 - donut_val, 0)
-    donut_colors = ["#9baaff", "#e4e9f2"]
+    center_color = dept_palette.get(center['부서'], "#2176ff")
+    donut_colors = [center_color, "#e4e9f2"]
     donut_fig = go.Figure(go.Pie(
         values=[donut_val, donut_rest],
         labels=["달성", "미달성"],
@@ -114,9 +125,11 @@ def target_row(df, hparams):
 
     # ------- 사이드 게이지 바 (가로형, 내부에만 퍼센트 표시) ------
     def side_donut(item):
+        # 부서별 색상 팔레트
         val = min(item['달성률'], 100)
         rest = max(100 - val, 0)
-        colors = ["#cdd0e3", "#e4e9f2"]
+        color = dept_palette.get(item['부서'], "#2176ff")  # 해당 부서 색상, 없으면 파란색
+        colors = [color, "#e4e9f2"]
         donut = go.Figure(go.Pie(
             values=[val, rest],
             labels=["달성", "미달성"],
@@ -140,14 +153,17 @@ def target_row(df, hparams):
             ]
         )
         return html.Div([
-            dcc.Graph(figure=donut, config={"displayModeBar": False}, style={"margin": "0 auto", "height": "130px", "width": "130px", "background": DASH_BG}),
-            html.Div(item['부서'], style={"fontWeight": 700, "fontSize": "1em", "color": "#858688", "marginTop": "10px", "textAlign": "center"})
+            dcc.Graph(figure=donut, config={"displayModeBar": False}, style={
+                "margin": "0 auto", "height": "130px", "width": "130px", "background": DASH_BG
+            }),
+            html.Div(item['부서'], style={
+                "fontWeight": 700, "fontSize": "1em", "color": "#858688", "marginTop": "10px", "textAlign": "center"
+            })
         ], style={
-            "display": "flex", "flexDirection": "column", "alignItems": "center",  # ⭐️ 세로로 가운데 정렬
-            "padding": "0 10px",
-            "background": DASH_BG
+            "display": "flex", "flexDirection": "column", "alignItems": "center",
+            "padding": "0 10px", "background": DASH_BG
         })
-
+    
     # 중앙 제외, 좌3/우3를 리스트로 세로 → 가로로
     other_depts = [d for d in sidebar_depts if d != center_key]
     left_depts = other_depts[:3]
