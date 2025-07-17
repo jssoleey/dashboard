@@ -101,12 +101,12 @@ def personal_row(df, hparams):
         value=avg_amt_per_contract,
         number={'suffix': " 원", 'font': {'size': 30}, 'valueformat': ',.0f'},
         gauge={
-            'axis': {'range': [0, 210000], 'tickwidth': 0},
+            'axis': {'range': [0, 240000], 'tickwidth': 0},
             'bar': {'color': '#f5bab5'},
             'steps': [
-                {'range': [0, 70000], 'color': "#fff4f3"},
-                {'range': [70000, 140000], 'color': "#ffeeed"},
-                {'range': [140000, 210000], 'color': "#ffe6e4"},
+                {'range': [0, 80000], 'color': "#fff4f3"},
+                {'range': [80000, 160000], 'color': "#ffeeed"},
+                {'range': [160000, 240000], 'color': "#ffe6e4"},
             ]
         }
     ))
@@ -156,12 +156,12 @@ def personal_row(df, hparams):
         value=avg_amt_per_person_per_day,
         number={'suffix': " 원", 'font': {'size': 30}, 'valueformat': ',.0f'},
         gauge={
-            'axis': {'range': [0, 390000], 'tickwidth': 0},
+            'axis': {'range': [0, 420000], 'tickwidth': 0},
             'bar': {'color': "#9cd7bf"},
             'steps': [
-                {'range': [0, 130000], 'color': "#f4fffb"},
-                {'range': [130000, 260000], 'color': "#ebfff7"},
-                {'range': [260000, 390000], 'color': "#ddfff1"},
+                {'range': [0, 140000], 'color': "#f4fffb"},
+                {'range': [140000, 280000], 'color': "#ebfff7"},
+                {'range': [280000, 420000], 'color': "#ddfff1"},
             ]
         }
     ))
