@@ -47,7 +47,7 @@ df = get_latest_df()
 # --- Dash 앱 시작 ---
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "Goodrich Sales Report"
-table_layout = register_table_callback(app, get_latest_df)
+table_layout = register_table_callback(app)
 
 # ----- 레이아웃 -----
 def serve_layout():
