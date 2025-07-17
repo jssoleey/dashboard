@@ -3,7 +3,7 @@ from dash import html, dcc
 import pandas as pd
 import datetime
 import plotly.graph_objects as go
-from dash.dependencies import Output, Input
+from dash.dependencies import Output, Input, State
 
 # ---- 각 행별 컴포넌트 import ----
 from components._1_kpi import kpi_row
@@ -39,7 +39,7 @@ def get_latest_df():
     df_gold2 = pd.read_csv(url_gold2, encoding='utf-8')
     df_legend = pd.read_csv(url_legend, encoding='utf-8')
     df = pd.concat([df_alpha, df_dream1, df_dream2, df_gold1, df_gold2, df_legend], axis = 0)
-    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
     return df
 
 df = get_latest_df()
@@ -47,7 +47,7 @@ df = get_latest_df()
 # --- Dash 앱 시작 ---
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "Goodrich Sales Report"
-table_layout = register_table_callback(app, df)
+table_layout = register_table_callback(app, get_latest_df)
 
 # ----- 레이아웃 -----
 def serve_layout():
@@ -61,6 +61,7 @@ def serve_layout():
     return html.Div(
         style={"backgroundColor": "#F4F4F4", "minHeight": "100vh", "padding": "10px"},
         children=[
+            dcc.Store(id='main-data', data=df.to_json(date_format='iso', orient='split')),
             html.Div([
                 # 좌측: 제목
                 html.H1("굿리치플러스 실적 현황", style={
@@ -142,10 +143,12 @@ app.layout = serve_layout
     dash.dependencies.Input('start-date', 'date'),
     dash.dependencies.Input('end-date', 'date'),
     dash.dependencies.Input('unit', 'value'),
-    dash.dependencies.Input('value-type', 'value')
+    dash.dependencies.Input('value-type', 'value'),
+    dash.dependencies.State('main-data', 'data'),
 )
-def update_dashboard(start_date, end_date, unit, value_type):
-    df = get_latest_df()
+def update_dashboard(start_date, end_date, unit, value_type, data_json):
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
     hparams = {
         "start_date": pd.to_datetime(start_date),
         "end_date": pd.to_datetime(end_date),
@@ -170,10 +173,12 @@ def update_dashboard(start_date, end_date, unit, value_type):
     Input('cnt-bar-tabs', 'value'),
     Input('start-date', 'date'),
     Input('end-date', 'date'),
-    Input('unit', 'value')
+    Input('unit', 'value'),
+    State('main-data', 'data'),
 )
-def update_cnt_bar(tab, start_date, end_date, unit):
-    df = get_latest_df()
+def update_cnt_bar(tab, start_date, end_date, unit, data_json):
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     if unit == '전체':
@@ -258,10 +263,12 @@ def update_cnt_bar(tab, start_date, end_date, unit):
     Input('start-date', 'date'),
     Input('end-date', 'date'),
     Input('unit', 'value'),
-    Input('value-type', 'value')
+    Input('value-type', 'value'),
+    State('main-data', 'data'),
 )
-def update_amt_bar(tab, start_date, end_date, unit, value_type):
-    df = get_latest_df()
+def update_amt_bar(tab, start_date, end_date, unit, value_type, data_json):
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     if unit == '전체':
@@ -342,10 +349,12 @@ def update_amt_bar(tab, start_date, end_date, unit, value_type):
     Output('dept-cnt-graph', 'figure'),
     Input('dept-cnt-tabs', 'value'),
     Input('start-date', 'date'),
-    Input('end-date', 'date')
+    Input('end-date', 'date'),
+    State('main-data', 'data'),
 )
-def update_dept_cnt(tab, start_date, end_date):
-    df = get_latest_df()
+def update_dept_cnt(tab, start_date, end_date, data_json):
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     depts = df['부서'].unique()
@@ -426,10 +435,12 @@ def update_dept_cnt(tab, start_date, end_date):
     Input('dept-amt-tabs', 'value'),
     Input('start-date', 'date'),
     Input('end-date', 'date'),
-    Input('value-type', 'value')
+    Input('value-type', 'value'),
+    State('main-data', 'data'),
 )
-def update_dept_amt(tab, start_date, end_date, value_type):
-    df = get_latest_df()
+def update_dept_amt(tab, start_date, end_date, value_type, data_json):
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
     start_date = pd.to_datetime(start_date)
     end_date = pd.to_datetime(end_date)
     depts = df['부서'].unique()
