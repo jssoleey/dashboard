@@ -1,11 +1,12 @@
 import pandas as pd
 from dash import html, dcc, dash_table
 import dash
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import io
 import base64
 
-def register_table_callback(app, df):
+def register_table_callback(app, get_latest_df):
+    df = get_latest_df()
 
     dept_list = df['부서'].unique().tolist()
     min_date = df['날짜'].min().date()
@@ -46,8 +47,11 @@ def register_table_callback(app, df):
         Input('table-dept-dropdown', 'value'),
         Input('table-date-picker', 'start_date'),
         Input('table-date-picker', 'end_date'),
+        State('main-data', 'data')
     )
-    def update_table(selected_dept, start_date, end_date):
+    def update_table(selected_dept, start_date, end_date, data_json):
+        df = pd.read_json(data_json, orient='split')
+        df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
         if not selected_dept or not start_date or not end_date:
             return "필터를 선택하세요."
         filtered_df = df[
@@ -75,6 +79,7 @@ def register_table_callback(app, df):
         prevent_initial_call=True
     )
     def download_excel(n_clicks, selected_dept, start_date, end_date):
+        df = get_latest_df()
         if n_clicks is None or not selected_dept:
             return dash.no_update
         filtered_df = df[
