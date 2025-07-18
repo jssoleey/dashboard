@@ -59,7 +59,7 @@ def serve_layout():
     dept_list = df['부서'].unique().tolist()
 
     return html.Div(
-        style={"backgroundColor": "#F4F4F4", "minHeight": "100vh", "padding": "10px"},
+        style={"backgroundColor": "#EEEEEE", "minHeight": "100vh", "padding": "10px"},
         children=[
             dcc.Store(id='main-data', data=df.to_json(date_format='iso', orient='split')),
             dcc.Store(id='target-mode', data='auto'),
@@ -598,11 +598,11 @@ def sync_target_date_options(data_json, end_date, cur_year, cur_month):
     Input('target-month', 'value'),
     Input('end-date', 'date'),
     Input('target-mode', 'data'),   # ★ 모드값 추가!
+    Input('unit', 'value'),         # ← 여기만 State → Input 으로 바꿔주면 됨!
     State('main-data', 'data'),
-    State('unit', 'value'),
     State('value-type', 'value')
 )
-def update_target_row(year, month, end_date, mode, data_json, unit, value_type):
+def update_target_row(year, month, end_date, mode, unit, data_json, value_type):
     import calendar
     df = pd.read_json(data_json, orient='split')
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
