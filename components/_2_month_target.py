@@ -227,11 +227,19 @@ def target_row(df, hparams):
     # 기간 계산
     start_date = f"{year_str}-{month_str}-01"
     if hparams.get('mode', 'auto') == 'auto':
-        # end_date를 넘겨받았을 때
-        end_date = pd.to_datetime(hparams.get('end_date'))
+        max_date = df['날짜'].max()
+        # end_date가 없으면 max_date, 있으면 그것을 사용
+        end_date = pd.to_datetime(hparams.get('end_date')) if hparams.get('end_date') is not None else max_date
+
+        # 만약 end_date가 해당 월의 마지막 날(예: 2025-07-31)인데, 실제 데이터의 max_date는 그보다 앞이라면 교체
+        last_day = calendar.monthrange(int(year), int(month))[1]
+        month_end = pd.Timestamp(year=int(year), month=int(month), day=last_day)
+        # 만약 end_date가 month_end와 같고, max_date가 그 이전이라면 max_date로 대체
+        if (end_date == month_end) and (max_date < month_end) and (max_date.year == int(year)) and (max_date.month == int(month)):
+            end_date = max_date
+
         period_str = f"({start_date} ~ {end_date.strftime('%Y-%m-%d')})"
     else:
-        # selectbox에서 선택한 월의 말일
         last_day = calendar.monthrange(int(year), int(month))[1]
         end_date = f"{year_str}-{month_str}-{last_day:02d}"
         period_str = f"({start_date} ~ {end_date})"
