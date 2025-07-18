@@ -62,6 +62,7 @@ def serve_layout():
         style={"backgroundColor": "#F4F4F4", "minHeight": "100vh", "padding": "10px"},
         children=[
             dcc.Store(id='main-data', data=df.to_json(date_format='iso', orient='split')),
+            dcc.Store(id='target-mode', data='auto'),
             html.Div([
                 # 좌측: 제목
                 html.H1("굿리치플러스 실적 현황", style={
@@ -128,6 +129,18 @@ def serve_layout():
                 'marginTop': '35px', 'marginBottom': '20px', 'width': '100%'
             }),
             html.Hr(),
+            #####
+            html.Div(
+                id='target-row-container',
+                children=[
+                    # selectbox를 여기서 미리 정의 (초기 값/option은 dummy라도 괜찮음)
+                    html.Div([
+                        dcc.Dropdown(id='target-year', options=[], style={'width': '120px'}),
+                        dcc.Dropdown(id='target-month', options=[], style={'width': '90px'}),
+                    ], style={'display': 'none'})  # 초기엔 안 보이게 해도 됨
+                ],
+                style={'margin': '32px 0'}
+            ),
             html.Div(id='dashboard-content'),
             html.Hr(),
             table_layout,
@@ -157,7 +170,7 @@ def update_dashboard(start_date, end_date, unit, value_type, data_json):
     }
     return [
         kpi_row(df, hparams),
-        target_row(df, hparams),
+        #target_row(df, hparams),
         period_summary_row(df, hparams),
         cnt_row(df, hparams),
         amt_row(df, hparams),
@@ -512,6 +525,111 @@ def update_dept_amt(tab, start_date, end_date, value_type, data_json):
             yaxis=dict(title=None, showgrid=True, gridcolor="#e0e0e0")
         )
     return fig
+
+@app.callback(
+    Output('target-mode', 'data'),
+    Input('end-date', 'date'),
+    Input('target-year', 'value'),
+    Input('target-month', 'value'),
+    State('target-mode', 'data'),
+    prevent_initial_call=True
+)
+def set_target_mode(end_date, year, month, mode):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return 'auto'
+    trig = ctx.triggered[0]['prop_id']
+    if trig == 'end-date.date':
+        return 'auto'
+    elif trig in ['target-year.value', 'target-month.value']:
+        return 'manual'
+    return mode
+
+@app.callback(
+    Output('target-year', 'options'),
+    Output('target-month', 'options'),
+    Output('target-year', 'value'),
+    Output('target-month', 'value'),
+    Input('main-data', 'data'),
+    Input('end-date', 'date'),
+    Input('target-year', 'value'),      # ← input으로 변경!
+    Input('target-month', 'value'),     # ← input으로 변경!
+)
+def sync_target_date_options(data_json, end_date, cur_year, cur_month):
+    import pandas as pd
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
+    years = sorted(df['날짜'].dt.year.unique())
+    months = sorted(df['날짜'].dt.month.unique())
+
+    # end_date 기준으로 디폴트 설정
+    if end_date:
+        d = pd.to_datetime(end_date)
+        default_year, default_month = d.year, d.month
+    else:
+        default_year, default_month = years[-1], months[-1]
+
+    years_option = [{'label': str(y), 'value': y} for y in years]
+    months_option = [{'label': f"{m:02d}", 'value': m} for m in months]
+
+    # 트리거 확인
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        # 최초 진입
+        return years_option, months_option, default_year, default_month
+
+    changed_id = ctx.triggered[0]['prop_id']
+
+    if changed_id == 'end-date.date':
+        # 달력에서 끝 일자 바꾸면 → 디폴트로 리셋
+        return years_option, months_option, default_year, default_month
+    elif changed_id in ['target-year.value', 'target-month.value']:
+        # 사용자가 직접 selectbox 바꾸면 → 그대로 유지
+        y = cur_year if cur_year in years else default_year
+        m = cur_month if cur_month in months else default_month
+        return years_option, months_option, y, m
+    else:
+        # 데이터가 바뀌면 → 디폴트
+        return years_option, months_option, default_year, default_month
+    
+@app.callback(
+    Output('target-row-container', 'children'),
+    Input('target-year', 'value'),
+    Input('target-month', 'value'),
+    Input('end-date', 'date'),
+    Input('target-mode', 'data'),   # ★ 모드값 추가!
+    State('main-data', 'data'),
+    State('unit', 'value'),
+    State('value-type', 'value')
+)
+def update_target_row(year, month, end_date, mode, data_json, unit, value_type):
+    import calendar
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
+    year = int(year)
+    month = int(month)
+    if mode == 'auto':
+        # end_date 기준(단, end_date가 같은 월인지 체크!)
+        end_dt = pd.to_datetime(end_date)
+        if end_dt.year == year and end_dt.month == month:
+            target_end = end_dt
+        else:
+            # 만약 end_date가 다른 월/년이라면 해당 월의 말일!
+            last_day = calendar.monthrange(year, month)[1]
+            target_end = pd.Timestamp(year=year, month=month, day=last_day)
+    else:
+        # manual 모드: 무조건 그 월 말일
+        last_day = calendar.monthrange(year, month)[1]
+        target_end = pd.Timestamp(year=year, month=month, day=last_day)
+    hparams = {
+        "unit": unit,
+        "value_type": value_type,
+        "target_year": year,
+        "target_month": month,
+        "end_date": target_end
+    }
+    return target_row(df, hparams)
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
