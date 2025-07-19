@@ -210,7 +210,7 @@ def update_cnt_bar(tab, start_date, end_date, unit, data_json):
                     .reindex(all_days, fill_value=0)
                     .rename_axis('날짜').reset_index())
         fig = go.Figure(go.Bar(
-            x=daily_df['날짜'], y=daily_df[value_col], marker_color='#f3b8b3', name='일별'
+            x=daily_df['날짜'], y=daily_df[value_col], marker_color='#9baaff', name='일별'
         ))
         fig.update_layout(xaxis=dict(tickformat='%m-%d'))
     elif tab == 'week':
@@ -225,7 +225,7 @@ def update_cnt_bar(tab, start_date, end_date, unit, data_json):
         fig = go.Figure(go.Bar(
             x=tick_vals,
             y=week_sum[value_col],
-            marker_color='#f3b8b3',
+            marker_color='#9baaff',
             name='주별'
         ))
 
@@ -260,7 +260,7 @@ def update_cnt_bar(tab, start_date, end_date, unit, data_json):
         fig = go.Figure(go.Bar(
             x=x_tick,
             y=month_df[value_col],
-            marker_color='#f3b8b3',
+            marker_color='#9baaff',
             name='월별'
         ))
         fig.update_layout(
@@ -601,8 +601,8 @@ def sync_target_date_options(data_json, end_date, cur_year, cur_month):
     Input('target-year', 'value'),
     Input('target-month', 'value'),
     Input('end-date', 'date'),
-    Input('target-mode', 'data'),   # ★ 모드값 추가!
-    Input('unit', 'value'),         # ← 여기만 State → Input 으로 바꿔주면 됨!
+    Input('target-mode', 'data'),
+    Input('unit', 'value'),
     State('main-data', 'data'),
     State('value-type', 'value')
 )
