@@ -53,7 +53,7 @@ def dept_heatmap_row(df, hparams):
     fig_cnt = px.imshow(
         cnt_norm,
         aspect="auto",
-        color_continuous_scale="Blues",
+        color_continuous_scale=["#f0f2fa", "#5361b3"],
         zmin=0, zmax=1,
         labels=dict(color="정규화<br>건수"),
     )
@@ -68,7 +68,7 @@ def dept_heatmap_row(df, hparams):
     fig_amt = px.imshow(
         amt_norm,
         aspect="auto",
-        color_continuous_scale="Blues",
+        color_continuous_scale=["#f0f2fa", "#4b856e"],
         zmin=0, zmax=1,
         labels=dict(color="정규화<br>"+value_col),
     )
