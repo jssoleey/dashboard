@@ -59,9 +59,9 @@ def amt_row(df, hparams):
         x=x_dates, y=this_cum_cnt,
         mode='lines+markers',
         name='설정 기간 누적',
-        line=dict(color='#f5bab5', width=3),
+        line=dict(color="#6f82f1", width=3),
         fill='tozeroy',
-        fillcolor='rgba(245,186,181,0.1)',
+        fillcolor='rgba(111, 130, 241, 0.15)',
         line_shape='spline',
         marker=dict(size=5)
     ))
@@ -106,9 +106,9 @@ def amt_row(df, hparams):
         x=x_dates, y=this_cum_amt,
         mode='lines+markers',
         name='설정 기간 누적',
-        line=dict(color='#9cd7bf', width=3),
+        line=dict(color="#7dbea4", width=3),
         fill='tozeroy',
-        fillcolor='rgba(165,238,209,0.1)',
+        fillcolor='rgba(125, 190, 164, 0.15)',
         line_shape='spline',
         marker=dict(size=5)
     ))
