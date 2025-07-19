@@ -61,14 +61,18 @@ def kpi_row(df, hparams):
     unique_work_days = dff['날짜'].nunique()  # 데이터가 존재하는 날짜의 개수
     avg_count = round(total_count / unique_work_days, 2) if unique_work_days else 0
     avg_amt = round(total_amt / unique_work_days, 0) if unique_work_days else 0
+    
+    start_str = pd.to_datetime(hparams.get('start_date')).strftime('%y.%m.%d')
+    end_str = pd.to_datetime(hparams.get('end_date')).strftime('%y.%m.%d')
+    unit_str = hparams.get('unit', '전체')
 
     kpi_boxes = html.Div([
-        html.Div(kpi_card("전체 건수", f"{total_count:,}", "mdi:account-group", "#2176ff"), style={"width": "24%", "display": "inline-block"}),
-        html.Div(kpi_card("일평균 건수", f"{avg_count:,}", "mdi:calendar-today", "#eb974b"), style={"width": "24%", "display": "inline-block"}),
-        html.Div(kpi_card(f"전체 {value_col}", f"{total_amt:,}원", "mdi:cash-multiple", "#4eb5c7"), style={"width": "24%", "display": "inline-block"}),
-        html.Div(kpi_card(f"일평균 {value_col}", f"{avg_amt:,}원", "mdi:calculator-variant", "#f75467"), style={"width": "24%", "display": "inline-block"}),
+        html.Div(kpi_card(f"총 건수({start_str}~{end_str})", f"{total_count:,}", "mdi:account-group", "#2176ff"), style={"width": "24%", "display": "inline-block"}),
+        html.Div(kpi_card(f"일평균 건수({start_str}~{end_str})", f"{avg_count:,}", "mdi:calendar-today", "#eb974b"), style={"width": "24%", "display": "inline-block"}),
+        html.Div(kpi_card(f"총 {value_col}({start_str}~{end_str})", f"{total_amt:,}원", "mdi:cash-multiple", "#4eb5c7"), style={"width": "24%", "display": "inline-block"}),
+        html.Div(kpi_card(f"일평균 {value_col}({start_str}~{end_str})", f"{avg_amt:,}원", "mdi:calculator-variant", "#f75467"), style={"width": "24%", "display": "inline-block"}),
     ], style={
-        "display": "flex", "width": "100%",
+        "display": "flex", "width": "99%",
         "justifyContent": "space-between", "marginBottom": "30px"
     })
     return kpi_boxes
