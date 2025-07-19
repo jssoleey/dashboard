@@ -116,7 +116,7 @@ def period_summary_row(df, hparams):
         orientation='h',
         text=[f"{v:,}원" for v in bar_data[value_col]],
         textposition='inside',
-        marker_color=['#d6d9e5', '#9baaff']
+        marker_color=['#d6d9e5', '#9cd7bf']
     ))
     fig_amt.update_layout(
         height=100, margin=dict(l=35, r=15, t=15, b=10),
@@ -173,7 +173,7 @@ def period_summary_row(df, hparams):
         orientation='h',
         text=[f"{v:,}원" for v in bar_data_month[value_col]],
         textposition='inside',
-        marker_color=['#d6d9e5', '#9baaff']
+        marker_color=['#d6d9e5', '#9cd7bf']
     ))
     fig_amt_month.update_layout(
         height=100, margin=dict(l=35, r=15, t=15, b=10),
