@@ -36,7 +36,7 @@ def dept_amt_row(df, hparams):
 
     # --- 11. 부서별 계약 건수 Bar ---
     counts = [df_period[df_period['부서'] == dept]['건수'].sum() for dept in departments]
-    highlight_color = "#f9df8a"
+    highlight_color = "#9baaff"
     pale_color = '#d6d9e5'
     
     blue_palette = [
@@ -91,7 +91,7 @@ def dept_amt_row(df, hparams):
 
     # --- 13. 부서별 환산/보험료 Bar ---
     amts = [df_period[df_period['부서'] == dept][value_col].sum() for dept in departments]
-    highlight_color = "#ab9cfe"
+    highlight_color = "#9cd7bf"
     if selected_unit == "전체":
         bar_colors = [highlight_color] * len(departments)
     else:
