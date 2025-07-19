@@ -43,11 +43,11 @@ def personal_row(df, hparams):
         number={'suffix': " 건", 'font': {'size': 32}},
         gauge={
             'axis': {'range': [0, 3], 'tickwidth': 0},
-            'bar': {'color': "#9baaff"},
+            'bar': {'color': "#6f82f1"},
             'steps': [
-                {'range': [0, 1], 'color': "#f1f7ff"},
-                {'range': [1, 2], 'color': "#edf0ff"},
-                {'range': [2, 3], 'color': "#dfe3ff"},
+                {'range': [0, 1], 'color': "#eff2ff"},
+                {'range': [1, 2], 'color': "#e4e9ff"},
+                {'range': [2, 3], 'color': "#d7deff"},
             ]
         }
     ))
@@ -102,11 +102,11 @@ def personal_row(df, hparams):
         number={'suffix': " 원", 'font': {'size': 30}, 'valueformat': ',.0f'},
         gauge={
             'axis': {'range': [0, 240000], 'tickwidth': 0},
-            'bar': {'color': '#f5bab5'},
+            'bar': {'color': "#e18f87"},
             'steps': [
                 {'range': [0, 80000], 'color': "#fff4f3"},
-                {'range': [80000, 160000], 'color': "#ffeeed"},
-                {'range': [160000, 240000], 'color': "#ffe6e4"},
+                {'range': [80000, 160000], 'color': "#ffe7e6"},
+                {'range': [160000, 240000], 'color': "#ffd9d6"},
             ]
         }
     ))
@@ -157,11 +157,11 @@ def personal_row(df, hparams):
         number={'suffix': " 원", 'font': {'size': 30}, 'valueformat': ',.0f'},
         gauge={
             'axis': {'range': [0, 420000], 'tickwidth': 0},
-            'bar': {'color': "#9cd7bf"},
+            'bar': {'color': "#7dbea4"},
             'steps': [
                 {'range': [0, 140000], 'color': "#f4fffb"},
-                {'range': [140000, 280000], 'color': "#ebfff7"},
-                {'range': [280000, 420000], 'color': "#ddfff1"},
+                {'range': [140000, 280000], 'color': "#daf6ea"},
+                {'range': [280000, 420000], 'color': "#c2f3de"},
             ]
         }
     ))
@@ -222,4 +222,3 @@ def personal_row(df, hparams):
             dcc.Graph(figure=fig_dept_amt_person, config={"displayModeBar": False}, style={"height": "300px"}),
         ], style={**CARD_STYLE, "width": "32%"}),
     ], style={"width": "100%", "display": "flex", "justifyContent": "space-between", "gap": "2%", "marginBottom": "16px"})
-
