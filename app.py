@@ -95,6 +95,10 @@ def serve_layout():
                             style={'width': '100%'}
                         )
                     ], style={'display': 'flex', 'flexDirection': 'column', 'width': '125px', 'marginRight': '12px'}),
+                    html.Button(
+                        '기간 초기화', id='reset-date-btn', n_clicks=0,
+                        style={'height': '45px', 'marginTop': '25px', 'marginRight': '20px'} 
+                    ),
                     html.Div([
                         html.Label("단위(부서)", style={'marginBottom': '10px'}),
                         dcc.Dropdown(
@@ -104,7 +108,7 @@ def serve_layout():
                             clearable=False,
                             style={'width': '120px', 'fontSize': '0.99rem'}
                         )
-                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '120px', 'height' : '75px', 'marginRight': '12px'}),
+                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '120px', 'height' : '75px', 'marginRight': '20px'}),
                     html.Div([
                         html.Label("보기 기준", style={'marginBottom': '15px'}),
                         dcc.RadioItems(
@@ -629,6 +633,23 @@ def update_target_row(year, month, end_date, mode, unit, data_json, value_type):
         "end_date": target_end
     }
     return target_row(df, hparams)
+
+@app.callback(
+    Output('start-date', 'date'),
+    Output('end-date', 'date'),
+    Input('reset-date-btn', 'n_clicks'),
+    State('main-data', 'data'),
+    prevent_initial_call=True
+)
+def reset_dates(n_clicks, data_json):
+    # df로부터 디폴트값 동적으로 다시 가져옴
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
+    min_date = df['날짜'].min().date()
+    max_date = df['날짜'].max().date()
+    end_date_default = max_date
+    start_date_default = max(end_date_default.replace(day=1), min_date)
+    return start_date_default, end_date_default
 
 
 if __name__ == '__main__':
