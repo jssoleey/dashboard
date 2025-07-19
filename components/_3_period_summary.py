@@ -48,11 +48,16 @@ def period_summary_row(df, hparams):
             return html.Span(f"▼ {abs(diff):,}", style={"color": "#2176ff", "fontSize": "1em"})
         else:
             return html.Span("-", style={"color": "#888", "fontSize": "1em"})
+        
+    end_date = pd.to_datetime(hparams.get('end_date'))
+    week_start = end_date - pd.Timedelta(days=end_date.weekday())
+    week_start_str = week_start.strftime('%y.%m.%d')     
+    end_str = pd.to_datetime(hparams.get('end_date')).strftime('%y.%m.%d')
+    month_start = end_date.replace(day=1)
+    month_start_str = month_start.strftime('%y.%m.%d')
 
     card1 = html.Div([
-        html.Div("오늘의 실적", style={
-            "fontSize": "1.07em", "marginBottom": "0.7em", "textAlign": "left", "color": "#454a4f"
-        }),
+        html.Div(f"오늘의 실적({unit}, {end_str})", style={"fontSize": "1.07em", "marginBottom": "0.7em", "textAlign": "left", "color": "#454a4f"}),
         html.Div([
             html.Div(f"{y_count:,}건", style={
                 "fontSize": "2.0em", "fontWeight": 700, "color": "#464646", "marginBottom": "0.3em"
@@ -121,7 +126,7 @@ def period_summary_row(df, hparams):
     fig_amt.update_traces(hoverinfo='skip')
 
     card2 = html.Div([
-        html.Div("이번 주 실적", style={"fontSize": "1.07em", "marginBottom": "0.4em", "textAlign": "left"}),
+        html.Div(f"이번 주 실적({unit}, {week_start_str}~{end_str})", style={"fontSize": "1.07em", "marginBottom": "0.4em", "textAlign": "left", "color": "#454a4f"}),
         dcc.Graph(figure=fig_count, config={"displayModeBar": False}, style={"marginBottom": "1.2em"}),
         dcc.Graph(figure=fig_amt, config={"displayModeBar": False})
     ], style=card_style)
@@ -178,7 +183,7 @@ def period_summary_row(df, hparams):
     fig_amt_month.update_traces(hoverinfo='skip')
 
     card3 = html.Div([
-        html.Div("이번 달 실적", style={"fontSize": "1.07em", "marginBottom": "0.4em", "textAlign": "left"}),
+        html.Div(f"이번 달 실적({unit}, {month_start_str}~{end_str})", style={"fontSize": "1.07em", "marginBottom": "0.4em", "textAlign": "left", "color": "#454a4f"}),
         dcc.Graph(figure=fig_count_month, config={"displayModeBar": False}, style={"marginBottom": "1.2em"}),
         dcc.Graph(figure=fig_amt_month, config={"displayModeBar": False})
     ], style=card_style)
