@@ -63,43 +63,15 @@ def side_donut(item):
 
 def target_row(df, hparams):
     # ---- 1. 연/월 옵션 생성 ----
-    years = sorted(df['날짜'].dt.year.unique())
-    months = sorted(df['날짜'].dt.month.unique())
     end_date = hparams.get('end_date')
     if end_date is None:
         end_date = df['날짜'].max()
     else:
         end_date = pd.to_datetime(end_date)
-    default_year, default_month = end_date.year, end_date.month
-
-    # ---- 2. dcc.Dropdown UI (도넛 우측 상단) ----
-    selectbox_ui = html.Div([
-        dcc.Dropdown(
-            id='target-year',
-            options=[{'label': str(y), 'value': y} for y in years],
-            value=default_year,
-            style={'width': '120px', 'display': 'inline-block', 'marginRight': '8px'}
-        ),
-        dcc.Dropdown(
-            id='target-month',
-            options=[{'label': f"{m:02d}", 'value': m} for m in months],
-            value=default_month,
-            style={'width': '90px', 'display': 'inline-block'}
-        ),
-    ], style={
-        'position': 'absolute',
-        'right': '16px',
-        'top': '18px',
-        'zIndex': 2,
-        'background': '#fff',
-        'padding': '2px 8px',
-        'boxShadow': '0 1px 4px rgba(60,60,70,0.09)',
-        'borderRadius': '8px'
-    })
 
     # ---- 3. 년/월 드롭다운 값으로 타겟 월 구간 ----
-    year = hparams.get('target_year', default_year)
-    month = hparams.get('target_month', default_month)
+    year = pd.to_datetime(hparams['end_date']).year
+    month = pd.to_datetime(hparams['end_date']).month   
 
     # ① end_date가 명시적으로 넘어온 경우(상단바) → 1일~end_date
     if hparams.get('end_date', None) is not None:
@@ -220,12 +192,12 @@ def target_row(df, hparams):
         "display": "flex", "flexDirection": "row", "gap": "10px", "background": DASH_BG, "alignItems": "center", "paddingTop": "150px"
     })
 
-    year_str = str(year)
-    month_str = f"{month:02d}"
+    year_str = pd.to_datetime(hparams['end_date']).year
+    month_str = pd.to_datetime(hparams['end_date']).month
     unit_str = hparams.get('unit', '전체')
 
     # 기간 계산
-    start_date = f"{year_str}-{month_str}-01"
+    start_date = f"{year_str}-0{month_str}-01"
     if hparams.get('mode', 'auto') == 'auto':
         max_date = df['날짜'].max()
         # end_date가 없으면 max_date, 있으면 그것을 사용
@@ -262,29 +234,6 @@ def target_row(df, hparams):
     # 최종 반환
     return html.Div([
         html.Div(title, style={}),
-
-        # 제목 아래에만 selectbox가 있도록
-        html.Div([
-            dcc.Dropdown(
-                id='target-year',
-                options=[{'label': str(y), 'value': y} for y in years],
-                value=default_year,
-                style={'width': '120px', 'display': 'inline-block', 'marginLeft': '10px', 'marginRight': '10px', 'marginTop': '5px'}
-            ),
-            dcc.Dropdown(
-                id='target-month',
-                options=[{'label': f"{m:02d}", 'value': m} for m in months],
-                value=default_month,
-                style={'width': '90px', 'display': 'inline-block', 'marginLeft': '5px', 'marginTop': '5px'}
-            ),
-        ], style={
-            'display': 'flex',
-            'flexDirection': 'row',
-            'alignItems': 'center',
-            'marginBottom': '16px',
-            'marginTop': '2px'
-        }),
-
         html.Div([
             left_col,
             html.Div(center_texts, style={'position': 'relative', 'display': 'inline-block'}),
