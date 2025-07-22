@@ -4,6 +4,8 @@ import pandas as pd
 import datetime
 import plotly.graph_objects as go
 from dash.dependencies import Output, Input, State
+import calendar
+from dash import ctx
 
 # ---- 각 행별 컴포넌트 import ----
 from components._1_kpi import kpi_row
@@ -57,11 +59,19 @@ def serve_layout():
     end_date_default = max_date
     start_date_default = max(end_date_default.replace(day=1), min_date)
     dept_list = df['부서'].unique().tolist()
+    
+    year_options = [{'label': f"{str(y)}년", 'value': y} for y in range(min_date.year, max_date.year + 1)]
+    month_options = [{'label': f"{m}월", 'value': m} for m in range(1, 13)]
+    day_options = [{'label': f"{d}일", 'value': d} for d in range(1, 32)]
 
     return html.Div(
         style={"backgroundColor": "#EEEEEE", "minHeight": "100vh", "padding": "10px"},
         children=[
             dcc.Store(id='main-data', data=df.to_json(date_format='iso', orient='split')),
+            dcc.Store(id='resolved-dates', data={
+                'start_date': start_date_default.isoformat(),
+                'end_date': end_date_default.isoformat()
+            }),
             dcc.Store(id='target-mode', data='auto'),
             html.Div([
                 # 좌측: 제목
@@ -76,28 +86,26 @@ def serve_layout():
                 # 우측: 설정 영역
                 html.Div([
                     html.Div([
-                        html.Label("시작 일자", style={'marginBottom': '3px'}),
-                        dcc.DatePickerSingle(
-                            id='start-date',
-                            min_date_allowed=min_date,
-                            max_date_allowed=max_date,
-                            date=start_date_default,
-                            style={'width': '100%'}
-                        )
-                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '125px', 'marginRight': '12px'}),
+                        html.Label("시작 연/월/일", style={'marginBottom': '3px'}),
+                        html.Div([
+                            dcc.Dropdown(id='start-year', options=year_options, value=start_date_default.year, clearable=False, style={'width': '90px', 'marginRight': '6px'}),
+                            dcc.Dropdown(id='start-month', options=month_options, value=start_date_default.month, clearable=False, style={'width': '80px', 'marginRight': '6px'}),
+                            dcc.Dropdown(id='start-day', options=day_options, value=start_date_default.day, clearable=False, style={'width': '80px'}),
+                        ], style={'display': 'flex', 'flexDirection': 'row', 'marginTop': '10px'})
+                    ], style={'marginRight': '12px', 'height' : '75px'}),
+
+                    # 종료일자 구성
                     html.Div([
-                        html.Label("끝 일자", style={'marginBottom': '3px'}),
-                        dcc.DatePickerSingle(
-                            id='end-date',
-                            min_date_allowed=min_date,
-                            max_date_allowed=max_date,
-                            date=end_date_default,
-                            style={'width': '100%'}
-                        )
-                    ], style={'display': 'flex', 'flexDirection': 'column', 'width': '125px', 'marginRight': '12px'}),
+                        html.Label("종료 연/월/일", style={'marginBottom': '3px'}),
+                        html.Div([
+                            dcc.Dropdown(id='end-year', options=year_options, value=end_date_default.year, clearable=False, style={'width': '90px', 'marginRight': '6px'}),
+                            dcc.Dropdown(id='end-month', options=month_options, value=end_date_default.month, clearable=False, style={'width': '80px', 'marginRight': '6px'}),
+                            dcc.Dropdown(id='end-day', options=day_options, value=end_date_default.day, clearable=False, style={'width': '80px'}),
+                        ], style={'display': 'flex', 'flexDirection': 'row', 'marginTop': '10px'})
+                    ], style={'marginRight': '12px', 'height' : '75px'}),
                     html.Button(
                         '기간 초기화', id='reset-date-btn', n_clicks=0,
-                        style={'height': '45px', 'marginTop': '25px', 'marginRight': '20px'} 
+                        style={'height': '36px', 'width': '90px', 'marginTop': '26px', 'marginRight': '20px'} 
                     ),
                     html.Div([
                         html.Label("단위(부서)", style={'marginBottom': '10px'}),
@@ -136,13 +144,6 @@ def serve_layout():
             #####
             html.Div(
                 id='target-row-container',
-                children=[
-                    # selectbox를 여기서 미리 정의 (초기 값/option은 dummy라도 괜찮음)
-                    html.Div([
-                        dcc.Dropdown(id='target-year', options=[], style={'width': '120px'}),
-                        dcc.Dropdown(id='target-month', options=[], style={'width': '90px'}),
-                    ], style={'display': 'none'})  # 초기엔 안 보이게 해도 됨
-                ],
                 style={'margin': '32px 0'}
             ),
             html.Div(id='dashboard-content'),
@@ -154,18 +155,94 @@ def serve_layout():
 
 app.layout = serve_layout
 
-# ----- 대시보드(상단) 콜백 -----
+# ----- 콜백 -----
+@app.callback(
+    Output('resolved-dates', 'data'),
+    Output('start-year', 'value'),
+    Output('start-month', 'value'),
+    Output('start-day', 'value'),
+    Output('end-year', 'value'),
+    Output('end-month', 'value'),
+    Output('end-day', 'value'),
+    Input('start-year', 'value'),
+    Input('start-month', 'value'),
+    Input('start-day', 'value'),
+    Input('end-year', 'value'),
+    Input('end-month', 'value'),
+    Input('end-day', 'value'),
+    Input('reset-date-btn', 'n_clicks'),
+    State('main-data', 'data'),
+    prevent_initial_call=True
+)
+def sync_target_date_options(start_y, start_m, start_d, end_y, end_m, end_d, reset_clicks, data_json):
+    df = pd.read_json(data_json, orient='split')
+    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
+    min_date = df['날짜'].min().date()
+    max_date = df['날짜'].max().date()
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = None
+    else:
+        trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    # '기간 초기화' 버튼 클릭 시 → 디폴트 날짜 강제 적용
+    if trigger_id == 'reset-date-btn':
+        start_date = max(max_date.replace(day=1), min_date)
+        end_date = max_date
+    else:
+        # None 방지
+        start_y = start_y if start_y is not None else min_date.year
+        start_m = start_m if start_m is not None else min_date.month
+        start_d = start_d if start_d is not None else min_date.day
+
+        end_y = end_y if end_y is not None else max_date.year
+        end_m = end_m if end_m is not None else max_date.month
+        end_d = end_d if end_d is not None else max_date.day
+
+        # 유효성 보정
+        start_y = max(min_date.year, min(start_y, max_date.year))
+        start_m = max(1, min(start_m, 12))
+        max_start_day = calendar.monthrange(start_y, start_m)[1]
+        start_d = max(1, min(start_d, max_start_day))
+        start_date = datetime.date(start_y, start_m, start_d)
+        if start_date < min_date:
+            start_date = min_date
+        if start_date > max_date:
+            start_date = max_date
+
+        end_y = max(min_date.year, min(end_y, max_date.year))
+        end_m = max(1, min(end_m, 12))
+        if datetime.date(end_y, end_m, 1) > max_date.replace(day=1):
+            end_y = max_date.year
+            end_m = max_date.month
+        max_end_day = calendar.monthrange(end_y, end_m)[1]
+        end_d = max(1, min(end_d, max_end_day))
+        end_date = datetime.date(end_y, end_m, end_d)
+        if end_date > max_date:
+            end_date = max_date
+        if end_date < min_date:
+            end_date = min_date
+
+    return (
+        {'start_date': start_date.isoformat(), 'end_date': end_date.isoformat()},
+        start_date.year, start_date.month, start_date.day,
+        end_date.year, end_date.month, end_date.day
+    )
+    
 @app.callback(
     dash.dependencies.Output('dashboard-content', 'children'),
-    dash.dependencies.Input('start-date', 'date'),
-    dash.dependencies.Input('end-date', 'date'),
+    dash.dependencies.Input('resolved-dates', 'data'),
     dash.dependencies.Input('unit', 'value'),
     dash.dependencies.Input('value-type', 'value'),
     dash.dependencies.State('main-data', 'data'),
 )
-def update_dashboard(start_date, end_date, unit, value_type, data_json):
+def update_dashboard(resolved_dates, unit, value_type, data_json):    
     df = pd.read_json(data_json, orient='split')
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
+    start_date = pd.to_datetime(resolved_dates['start_date'])
+    end_date = pd.to_datetime(resolved_dates['end_date'])
+    
     hparams = {
         "start_date": pd.to_datetime(start_date),
         "end_date": pd.to_datetime(end_date),
@@ -188,16 +265,16 @@ def update_dashboard(start_date, end_date, unit, value_type, data_json):
 @app.callback(
     Output('cnt-bar-graph', 'figure'),
     Input('cnt-bar-tabs', 'value'),
-    Input('start-date', 'date'),
-    Input('end-date', 'date'),
+    Input('resolved-dates', 'data'),
     Input('unit', 'value'),
     State('main-data', 'data'),
 )
-def update_cnt_bar(tab, start_date, end_date, unit, data_json):
+def update_cnt_bar(tab, resolved_dates, unit, data_json):
     df = pd.read_json(data_json, orient='split')
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
+    start_date = pd.to_datetime(resolved_dates['start_date'])
+    end_date = pd.to_datetime(resolved_dates['end_date'])
+    
     if unit == '전체':
         df_period = df[(df['날짜'] >= start_date) & (df['날짜'] <= end_date)].copy()
     else:
@@ -277,17 +354,17 @@ def update_cnt_bar(tab, start_date, end_date, unit, data_json):
 @app.callback(
     Output('amt-bar-graph', 'figure'),
     Input('amt-bar-tabs', 'value'),
-    Input('start-date', 'date'),
-    Input('end-date', 'date'),
+    Input('resolved-dates', 'data'),
     Input('unit', 'value'),
     Input('value-type', 'value'),
     State('main-data', 'data'),
 )
-def update_amt_bar(tab, start_date, end_date, unit, value_type, data_json):
+def update_amt_bar(tab, resolved_dates, unit, value_type, data_json):
     df = pd.read_json(data_json, orient='split')
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
+    start_date = pd.to_datetime(resolved_dates['start_date'])
+    end_date = pd.to_datetime(resolved_dates['end_date'])
+    
     if unit == '전체':
         df_period = df[(df['날짜'] >= start_date) & (df['날짜'] <= end_date)].copy()
     else:
@@ -365,15 +442,14 @@ def update_amt_bar(tab, start_date, end_date, unit, value_type, data_json):
 @app.callback(
     Output('dept-cnt-graph', 'figure'),
     Input('dept-cnt-tabs', 'value'),
-    Input('start-date', 'date'),
-    Input('end-date', 'date'),
+    Input('resolved-dates', 'data'),
     State('main-data', 'data'),
 )
-def update_dept_cnt(tab, start_date, end_date, data_json):
+def update_dept_cnt(tab, resolved_dates, data_json):
     df = pd.read_json(data_json, orient='split')
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
+    start_date = pd.to_datetime(resolved_dates['start_date'])
+    end_date = pd.to_datetime(resolved_dates['end_date'])
     depts = df['부서'].unique()
     value_col = '건수'
 
@@ -450,16 +526,15 @@ def update_dept_cnt(tab, start_date, end_date, data_json):
 @app.callback(
     Output('dept-amt-graph', 'figure'),
     Input('dept-amt-tabs', 'value'),
-    Input('start-date', 'date'),
-    Input('end-date', 'date'),
+    Input('resolved-dates', 'data'),
     Input('value-type', 'value'),
     State('main-data', 'data'),
 )
-def update_dept_amt(tab, start_date, end_date, value_type, data_json):
+def update_dept_amt(tab, resolved_dates, value_type, data_json):
     df = pd.read_json(data_json, orient='split')
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
-    start_date = pd.to_datetime(start_date)
-    end_date = pd.to_datetime(end_date)
+    start_date = pd.to_datetime(resolved_dates['start_date'])
+    end_date = pd.to_datetime(resolved_dates['end_date'])
     depts = df['부서'].unique()
     value_col = value_type
 
@@ -529,128 +604,45 @@ def update_dept_amt(tab, start_date, end_date, value_type, data_json):
             yaxis=dict(title=None, showgrid=True, gridcolor="#e0e0e0")
         )
     return fig
-
-@app.callback(
-    Output('target-mode', 'data'),
-    Input('end-date', 'date'),
-    Input('target-year', 'value'),
-    Input('target-month', 'value'),
-    State('target-mode', 'data'),
-    prevent_initial_call=True
-)
-def set_target_mode(end_date, year, month, mode):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return 'auto'
-    trig = ctx.triggered[0]['prop_id']
-    if trig == 'end-date.date':
-        return 'auto'
-    elif trig in ['target-year.value', 'target-month.value']:
-        return 'manual'
-    return mode
-
-@app.callback(
-    Output('target-year', 'options'),
-    Output('target-month', 'options'),
-    Output('target-year', 'value'),
-    Output('target-month', 'value'),
-    Input('main-data', 'data'),
-    Input('end-date', 'date'),
-    Input('target-year', 'value'),      # ← input으로 변경!
-    Input('target-month', 'value'),     # ← input으로 변경!
-)
-def sync_target_date_options(data_json, end_date, cur_year, cur_month):
-    import pandas as pd
-    df = pd.read_json(data_json, orient='split')
-    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
-    years = sorted(df['날짜'].dt.year.unique())
-    months = sorted(df['날짜'].dt.month.unique())
-
-    # end_date 기준으로 디폴트 설정
-    if end_date:
-        d = pd.to_datetime(end_date)
-        default_year, default_month = d.year, d.month
-    else:
-        default_year, default_month = years[-1], months[-1]
-
-    years_option = [{'label': str(y), 'value': y} for y in years]
-    months_option = [{'label': f"{m:02d}", 'value': m} for m in months]
-
-    # 트리거 확인
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        # 최초 진입
-        return years_option, months_option, default_year, default_month
-
-    changed_id = ctx.triggered[0]['prop_id']
-
-    if changed_id == 'end-date.date':
-        # 달력에서 끝 일자 바꾸면 → 디폴트로 리셋
-        return years_option, months_option, default_year, default_month
-    elif changed_id in ['target-year.value', 'target-month.value']:
-        # 사용자가 직접 selectbox 바꾸면 → 그대로 유지
-        y = cur_year if cur_year in years else default_year
-        m = cur_month if cur_month in months else default_month
-        return years_option, months_option, y, m
-    else:
-        # 데이터가 바뀌면 → 디폴트
-        return years_option, months_option, default_year, default_month
     
 @app.callback(
     Output('target-row-container', 'children'),
-    Input('target-year', 'value'),
-    Input('target-month', 'value'),
-    Input('end-date', 'date'),
+    Input('resolved-dates', 'data'),
     Input('target-mode', 'data'),
     Input('unit', 'value'),
     State('main-data', 'data'),
     State('value-type', 'value')
 )
-def update_target_row(year, month, end_date, mode, unit, data_json, value_type):
-    import calendar
+def update_target_row(resolved_dates, mode, unit, data_json, value_type):
     df = pd.read_json(data_json, orient='split')
     df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce').dt.tz_localize(None)
-    year = int(year)
-    month = int(month)
+    start_date = pd.to_datetime(resolved_dates['start_date'])
+    end_date = pd.to_datetime(resolved_dates['end_date'])
+    year = pd.to_datetime(end_date).year
+    month = pd.to_datetime(end_date).month
+
     if mode == 'auto':
         # end_date 기준(단, end_date가 같은 월인지 체크!)
         end_dt = pd.to_datetime(end_date)
         if end_dt.year == year and end_dt.month == month:
             target_end = end_dt
         else:
-            # 만약 end_date가 다른 월/년이라면 해당 월의 말일!
             last_day = calendar.monthrange(year, month)[1]
             target_end = pd.Timestamp(year=year, month=month, day=last_day)
     else:
-        # manual 모드: 무조건 그 월 말일
         last_day = calendar.monthrange(year, month)[1]
         target_end = pd.Timestamp(year=year, month=month, day=last_day)
+
     hparams = {
         "unit": unit,
         "value_type": value_type,
         "target_year": year,
         "target_month": month,
+        "start_date": pd.to_datetime(start_date),
         "end_date": target_end
     }
+
     return target_row(df, hparams)
-
-@app.callback(
-    Output('start-date', 'date'),
-    Output('end-date', 'date'),
-    Input('reset-date-btn', 'n_clicks'),
-    State('main-data', 'data'),
-    prevent_initial_call=True
-)
-def reset_dates(n_clicks, data_json):
-    # df로부터 디폴트값 동적으로 다시 가져옴
-    df = pd.read_json(data_json, orient='split')
-    df['날짜'] = pd.to_datetime(df['날짜'], errors='coerce')
-    min_date = df['날짜'].min().date()
-    max_date = df['날짜'].max().date()
-    end_date_default = max_date
-    start_date_default = max(end_date_default.replace(day=1), min_date)
-    return start_date_default, end_date_default
-
 
 if __name__ == '__main__':
     app.run_server(debug=True)
