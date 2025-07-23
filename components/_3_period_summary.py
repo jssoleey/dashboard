@@ -24,8 +24,21 @@ def period_summary_row(df, hparams):
     value_col = hparams["value_type"]
 
     df['날짜'] = pd.to_datetime(df['날짜'])
+    
+    # 오늘 날짜 기준으로 과거 중 실적이 있는 마지막 날짜 찾기
+    df_sorted = df.sort_values("날짜")
+    df_with_data = df_sorted[(df_sorted["날짜"] < base_date)]
+    if unit != "전체":
+        df_with_data = df_with_data[df_with_data["부서"] == unit]
+
+    # 데이터가 존재하는 가장 최근 날짜
+    if not df_with_data.empty:
+        last_working_date = df_with_data["날짜"].max()
+    else:
+        last_working_date = None
+
     yesterday = base_date
-    day_before = base_date - pd.Timedelta(days=1)
+    day_before = last_working_date
 
     if unit == "전체":
         yesterday_df = df[df['날짜'] == yesterday]
@@ -33,12 +46,20 @@ def period_summary_row(df, hparams):
     else:
         yesterday_df = df[(df['날짜'] == yesterday) & (df['부서'] == unit)]
         day_before_df = df[(df['날짜'] == day_before) & (df['부서'] == unit)]
+        
+    if day_before is not None:
+        day_before_df = df[df["날짜"] == day_before]
+        if unit != "전체":
+            day_before_df = day_before_df[day_before_df["부서"] == unit]
+        db_count = int(day_before_df["건수"].sum())
+        db_amt = int(day_before_df[value_col].sum())
+    else:
+        db_count = 0
+        db_amt = 0
 
     y_count = int(yesterday_df['건수'].sum())
-    db_count = int(day_before_df['건수'].sum())
     diff_count = y_count - db_count
     y_amt = int(yesterday_df[value_col].sum())
-    db_amt = int(day_before_df[value_col].sum())
     diff_amt = y_amt - db_amt
 
     def diff_text_html(diff):
